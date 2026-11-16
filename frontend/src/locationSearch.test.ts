@@ -1,0 +1,21 @@
+import {afterEach,describe,expect,it,vi} from 'vitest'
+import {candidateAddress,candidateSource,normalizeLocationSearch,savedLocationMatches,searchLocations} from './locationSearch'
+import type {Place} from './types'
+
+const candidate={name:'Mathematics and Computer Building',lat:43.472,lon:-80.544,address:'200 University Avenue West',source:'OpenStreetMap',alias:'MC',resolved_query:'Mathematics and Computer Building'}
+const saved:Place={id:'saved-mc',name:'My classroom',lat:43.472,lon:-80.544,address:'University Avenue',aliases:['MC'],notes:'',travel_overrides:{}}
+afterEach(()=>vi.unstubAllGlobals())
+describe('shared location search',()=>{
+ it('keeps a genuine empty search distinct from provider failures',()=>{
+  expect(normalizeLocationSearch({results:[]}).status).toBe('no_results')
+  expect(normalizeLocationSearch({detail:{status:'unavailable',message:'Provider DNS failed',results:[]}},503)).toEqual({status:'unavailable',message:'Provider DNS failed',results:[]})
+ })
+ it.each(['rate_limited','timeout','configuration_error','invalid_response','invalid_query'] as const)('retains %s with a useful fallback explanation',status=>{const response=normalizeLocationSearch({detail:{status,results:[]}},503);expect(response.status).toBe(status);expect(response.message).not.toBe('');expect(response.message).not.toContain('No map matches')})
+ it('recognizes HTTP failures even when the upstream response has no status',()=>{expect(normalizeLocationSearch({},429).status).toBe('rate_limited');expect(normalizeLocationSearch({},422).status).toBe('invalid_query');expect(normalizeLocationSearch({},403).status).toBe('configuration_error')})
+ it('retains partial saved results during degraded provider search',()=>{const response=normalizeLocationSearch({results:[{...candidate,location_id:saved.id,match_type:'saved'}],status:'ok',message:'Saved matches available; provider unavailable.'});expect(response.results[0].location_id).toBe(saved.id);expect(response.message).toContain('provider unavailable')})
+ it('filters saved aliases and addresses independently of provider availability',()=>{expect(savedLocationMatches([saved],' mc ')).toEqual([saved]);expect(savedLocationMatches([saved],'University')).toEqual([saved]);expect(savedLocationMatches([saved],'missing')).toEqual([]);expect(saved.aliases).toEqual(['MC'])})
+ it('retains explicit address and source for confirmation',()=>{expect(candidateAddress(candidate)).toBe('200 University Avenue West');expect(candidateAddress({...candidate,address:{road:'University Avenue',city:'Waterloo'}})).toBe('University Avenue, Waterloo');expect(candidateSource(candidate)).toContain('MC → Mathematics and Computer Building');expect(candidateSource(candidate)).toContain('OpenStreetMap')})
+ it('rejects malformed coordinates and handles unknown response statuses safely',()=>{expect(normalizeLocationSearch({results:[candidate,{...candidate,lat:95},{...candidate,lon:'wrong'}],status:'toString'}).results).toEqual([candidate]);expect(normalizeLocationSearch({results:[],status:'toString'}).status).toBe('no_results');expect(normalizeLocationSearch({}).status).toBe('invalid_response');expect(normalizeLocationSearch({status:'ok'}).status).toBe('invalid_response');expect(normalizeLocationSearch({status:'ok',results:[{...candidate,lat:95}]}).status).toBe('invalid_response')})
+ it('submits only a deliberate search and trims its query',async()=>{const fetch=vi.fn().mockResolvedValue({status:200,json:async()=>({results:[candidate],status:'ok'})});vi.stubGlobal('fetch',fetch);expect((await searchLocations(' x ')).status).toBe('invalid_query');expect(fetch).not.toHaveBeenCalled();expect((await searchLocations(' MC ')).results).toEqual([candidate]);expect(fetch).toHaveBeenCalledWith('/api/geocode',expect.objectContaining({body:JSON.stringify({query:'MC'})}))})
+ it('parses structured errors without losing status and handles offline failures',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue({status:503,json:async()=>({detail:{status:'timeout',results:[],message:'Search timed out'}})}));expect((await searchLocations('MC')).status).toBe('timeout');vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));const response=await searchLocations('MC');expect(response.status).toBe('unavailable');expect(response.message).toContain('Saved places')})
+})

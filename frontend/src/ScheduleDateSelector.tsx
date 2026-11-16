@@ -1,0 +1,8 @@
+import {CalendarDays,ChevronLeft,ChevronRight} from 'lucide-react'
+import {localDate,nextDate} from './utils'
+
+export function scheduleDateLabel(date:string){return new Intl.DateTimeFormat('en-CA',{timeZone:'UTC',weekday:'long',month:'long',day:'numeric',year:'numeric'}).format(new Date(`${date}T12:00:00Z`))}
+export default function ScheduleDateSelector({date,timezone,onChange}:{date:string;timezone:string;onChange:(date:string)=>void}){
+ const today=localDate(new Date(),timezone)
+ return <section className="schedule-date-selector" aria-label="Schedule Date"><div className="schedule-date-heading"><CalendarDays size={18}/><div><span>Schedule Date</span><strong aria-live="polite">{scheduleDateLabel(date)}</strong></div></div><div className="schedule-date-controls"><button className="icon-button" aria-label="Previous day" disabled={date<='0001-01-01'} onClick={()=>onChange(nextDate(date,-1))}><ChevronLeft size={18}/></button><input aria-label="Planning date" type="date" min="0001-01-01" max="9999-12-31" value={date} onChange={event=>{const value=event.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(value)&&value>='0001-01-01'&&event.target.validity.valid)onChange(value)}}/><button className="icon-button" aria-label="Next day" disabled={date>='9999-12-31'} onClick={()=>onChange(nextDate(date,1))}><ChevronRight size={18}/></button><button className="button secondary small" aria-pressed={date===today} onClick={()=>onChange(today)}>Today</button><button className="button secondary small" aria-pressed={date===nextDate(today,1)} onClick={()=>onChange(nextDate(today,1))}>Tomorrow</button></div></section>
+}

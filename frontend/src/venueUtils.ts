@@ -1,0 +1,3 @@
+export const capabilityLabels:Record<string,string>={fitness_training:'General fitness training',quiet_workspace:'Quiet workspace',desk:'Desk / work surface',wifi:'Wi-Fi',computer:'Computer',printer:'Printer',weights:'Weights',cardio_equipment:'Cardio equipment',swimming_pool:'Swimming pool',outdoor_space:'Outdoor space',kitchen:'Kitchen',music_practice_space:'Music practice space',collaboration_space:'Group workspace',laboratory:'Laboratory',workshop:'Workshop'}
+export const capabilityName=(tag:string)=>capabilityLabels[tag]??tag.replaceAll('_',' ')
+export const normalizeCapabilities=(value:string)=>[...new Set(value.split(',').map(tag=>tag.trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')).filter(Boolean))]

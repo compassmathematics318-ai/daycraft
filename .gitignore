@@ -1,0 +1,61 @@
+# Daycraft is a local single-user application. Never commit personal workspace data.
+/data/
+/logs/
+**/test-results/
+**/playwright-report/
+**/coverage/
+
+# Python environments, bytecode and tooling caches
+.venv/
+venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+*.py[cod]
+
+# Node dependencies, frontend output, and tooling caches
+**/node_modules/
+/frontend/dist/
+**/.vite/
+**/.npm-cache/
+**/.cache/
+**/.turbo/
+**/.parcel-cache/
+*.tsbuildinfo
+
+# Databases, SQLite journals, local backups and runtime logs
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+*.bak
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+
+# Local configuration and common credential material
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+**/.npmrc
+*.pem
+*.pfx
+*.p12
+*.key
+id_rsa
+id_ed25519
+
+# OS and editor state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
